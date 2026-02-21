@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bilgi Kartları">
+<meta name="theme-color" content="#faf7f2">
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22KPSS%20Bilgi%20Kartlar%C4%B1%22%2C%22short_name%22%3A%22Bilgi%20Kartlar%C4%B1%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23faf7f2%22%2C%22theme_color%22%3A%22%23faf7f2%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fvia.placeholder.com%2F192%2Fb5451b%2Fffffff%3Ftext%3DBK%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+<title>KPSS Tarih Bilgi Kartları</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* iOS & Apple Sistem Stilleri */
+:root {
+  --bg:#f5f0e8; --bg2:#ede7da; --surface:#faf7f2; --card-bg:#ffffff;
+  --border:#ddd6c8; --border2:#c9bfb0; --text:#2c2416; --text2:#6b5f4e; --text3:#9c8f7e;
+  --accent:#b5451b; --accent2:#d4622d; --accent-bg:#fdf0eb;
+  --blue:#007aff; --green:#34c759; --red:#ff3b30;
+  --shadow:0 8px 24px rgba(44,36,22,0.1); 
+  --bottom-bar-h: calc(64px + env(safe-area-inset-bottom));
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body {
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height:100vh; font-size:16px;
+  -webkit-text-size-adjust:100%; overscroll-behavior-y: none;
+}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* Üst Bar */
+.topbar{
+  background:rgba(250, 247, 242, 0.85); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px 10px; padding-top:calc(12px + env(safe-area-inset-top));
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:10px;
+}
+.topbar-back{
+  display:none; background:none; border:none; font-size:28px; line-height: 1; 
+  color:var(--accent); cursor:pointer; padding:0 8px 0 0; flex-shrink:0;
+}
+.topbar-title{font-family:'Lora',serif;font-size:20px;font-weight:700;}
+.topbar-sub{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;}
+
+/* Ana İçerik */
+.main{flex:1;overflow-y:auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--bottom-bar-h) + 20px);}
+.content{padding:16px 14px;}
+
+/* Alt Navigasyon */
+.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:200;
+  background:rgba(250, 247, 242, 0.9); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px);
+  border-top:1px solid var(--border); display:flex; align-items:stretch;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bnav-item{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:10px 4px; cursor:pointer; transition:all .2s ease; border:none; background:none;
+}
+.bnav-icon{font-size:22px; transition:transform 0.2s;}
+.bnav-label{font-size:10px; font-weight:600; color:var(--text3);}
+.bnav-item.active .bnav-label{color:var(--accent);}
+.bnav-item.active .bnav-icon{transform:scale(1.15) translateY(-2px);}
+
+/* Grid & Listeler (Konular) */
+.topic-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.topic-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:20px 16px;box-shadow: 0 2px 8px rgba(0,0,0,0.04); text-align:center; cursor:pointer; transition: transform 0.1s;}
+.topic-card:active{transform:scale(0.96); background:var(--bg2);}
+.topic-icon{font-size:32px;margin-bottom:12px;}
+.topic-name{font-family:'Lora',serif;font-size:15px;font-weight:600;margin-bottom:6px;}
+
+/* 3D Flip Kart (Mobil Optimizasyonlu Sınav ve Çalışma Modu) */
+.exam-container {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 60vh; min-height: 400px; width: 100%; padding: 10px;
+}
+.flip-card-wrapper {
+  perspective: 1200px; width: 100%; max-width: 380px; height: 100%; cursor: pointer;
+}
+.flip-card-inner {
+  position: relative; width: 100%; height: 100%;
+  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-style: preserve-3d; will-change: transform;
+}
+.flip-card-wrapper.flipped .flip-card-inner { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute; width: 100%; height: 100%;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border-radius: 24px; padding: 24px 20px;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.flip-front { background: var(--card-bg); }
+.flip-back { background: #fff; transform: rotateY(180deg); }
+
+.c-tag { position:absolute; top:20px; font-family:'DM Mono',monospace; font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; }
+.c-q { font-family:'Lora',serif; font-size:22px; font-weight:700; color:var(--text); line-height:1.4; margin-top: 10px;}
+.c-a { font-size:18px; color:var(--text); line-height:1.6; padding-bottom: 70px; margin-top: 10px; width: 100%;}
+.c-a strong { color:var(--accent); font-weight:700; }
+.c-hint { position:absolute; bottom:20px; font-size:12px; color:var(--text3); }
+
+/* Butonlar & İlerleme */
+.exam-actions {
+  position: absolute; bottom: 20px; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 16px; width: 100%; padding: 0 20px;
+}
+.btn-exam {
+  flex: 1; padding: 14px; border-radius: 16px; border: none; font-size: 16px; font-weight: 600; color: #fff;
+  cursor: pointer; transition: transform 0.1s; -webkit-tap-highlight-color: transparent;
+}
+.btn-exam:active { transform: scale(0.95); }
+.btn-correct { background: var(--green); }
+.btn-wrong { background: var(--red); }
+.btn-nav { background: var(--blue); }
+
+.progress-bar { width:100%; height:8px; background:var(--border); border-radius:4px; margin-bottom: 20px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--accent); width:0%; transition: width 0.3s ease; }
+.exam-status { font-family:'DM Mono',monospace; font-size:12px; color:var(--text3); margin-bottom:10px; text-align:center; }
+
+/* Ekleme Formu Stilleri */
+.form-card { background: var(--card-bg); border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; margin-top: 16px; }
+.form-input { 
+  width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border); 
+  background: var(--bg); font-size: 16px; font-family: inherit; color: var(--text);
+  -webkit-appearance: none; outline: none; transition: border-color 0.2s;
+}
+.form-input:focus { border-color: var(--accent); }
+textarea.form-input { resize: vertical; min-height: 80px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <button class="topbar-back" id="topbar-back" onclick="showPage('home')">‹</button>
+  <div class="topbar-text">
+    <div class="topbar-title" id="topbar-title">KPSS Tarih</div>
+    <div class="topbar-sub" id="topbar-sub">Bilgi Kartları</div>
+  </div>
+</div>
+
+<main class="main">
+  <div class="content" id="content-area"></div>
+</main>
+
+<nav class="bottom-nav">
+  <button class="bnav-item active" id="bn-home" onclick="showPage('home')">
+    <span class="bnav-icon">📚</span><span class="bnav-label">Konular</span>
+  </button>
+  <button class="bnav-item" id="bn-sinav" onclick="showPage('sinav')">
+    <span class="bnav-icon">🎯</span><span class="bnav-label">Sınav Modu</span>
+  </button>
+  <button class="bnav-item" id="bn-ekle" onclick="showPage('ekle')">
+    <span class="bnav-icon">➕</span><span class="bnav-label">Ekle</span>
+  </button>
+</nav>
+
+</div>
+
+<script>
+// ═══════════════════════════════
+// VERİLER (İçeriğe asla dokunulmadı)
+// ═══════════════════════════════
+var TOPICS = {
+  ilk: {label:"İlk Türk Devletleri", icon:"🏺"}, islami: {label:"Türk-İslam Devletleri", icon:"☪️"},
+  selcuklu: {label:"Anadolu Selçukluları", icon:"⚔️"}, kuruluş: {label:"Osmanlı: Kuruluş", icon:"🌙"},
+  yukselme: {label:"Osmanlı: Yükselme", icon:"📈"}, duraklama:{label:"Osmanlı: Duraklama", icon:"⏸️"},
+  gerileme: {label:"Osmanlı: Gerileme", icon:"📉"}, dagılma: {label:"Osmanlı: Dağılma", icon:"🗺️"},
+  kurtulus: {label:"Kurtuluş Savaşı", icon:"🏳️"}, inkılap: {label:"Atatürk İnkılapları", icon:"🇹🇷"},
+  genel: {label:"Genel / Diğer", icon:"📚"},
+};
+
+var DEFAULT_CARDS = [
+/* ── İLK TÜRK DEVLETLERİ ── */
+{id:"i1",topic:"ilk",q:"Büyük Hun Devleti'ni kuran ve güçlendiren hükümdarlar kimlerdir?",a:"<strong>Teoman (MÖ 220)</strong> kurdu. <strong>Mete Han</strong> döneminde en güçlü hâline geldi. Mete Han orduyu onluk sisteme göre düzenledi.",tip:"Teoman kurdu, Mete büyüttü"},
+{id:"i2",topic:"ilk",q:"Göktürk Devleti'nin tarihsel önemi nedir?",a:"Tarihte <strong>'Türk'</strong> adını kullanan ilk devlettir (552). <strong>Orhun Yazıtları</strong> Türk tarihinin ilk yazılı belgesidir. İlk kez 'kağan' unvanı kullanıldı.",tip:"Göktürk = İlk Türk adı + Orhun Yazıtları"},
+{id:"i3",topic:"ilk",q:"Orhun Yazıtları kime, kim tarafından dikilmiştir?",a:"<strong>Bilge Kağan</strong> ve <strong>Kültigin</strong> adına, <strong>Yollug Tigin</strong> tarafından yazılmıştır (8. yy). Türkçe bilinen ilk yazılı edebi metindir.",tip:"Bilge Kağan + Kültigin adına → Yollug Tigin yazdı"},
+{id:"i4",topic:"ilk",q:"Uygurlar diğer Türk devletlerinden nasıl ayrılır?",a:"Göçebelikten <strong>yerleşik hayata geçen ilk büyük Türk devleti</strong>. Tarım, ticaret ve sanatla uğraştılar. <strong>Maniheizm ve Budizm'i</strong> benimsediler. Matbaayı kullandılar.",tip:"Uygur = İlk yerleşik Türk + Maniheizm"},
+{id:"i5",topic:"ilk",q:"Hunların Avrupa'ya göçünün (375) dünya tarihine etkisi nedir?",a:"Batı'ya baskı yapan Hunlar, <strong>Kavimler Göçü'ne (375)</strong> yol açtı. Bu göç Roma İmparatorluğu'nun çöküşünü hızlandırdı ve Orta Çağ Avrupası'nı şekillendirdi.",tip:"Kavimler Göçü → Roma çöktü → Orta Çağ başladı"},
+{id:"i6",topic:"ilk",q:"Türk devletlerinde 'Töre' nedir?",a:"Töre; hukuk, gelenek ve ahlak kurallarının bütünüdür. Yazısız hukuk niteliğindedir. <strong>Hükümdarı da bağlardı</strong> — keyfi yönetimi sınırlayan en önemli unsurdu.",tip:"Töre = Hükümdarı da bağlayan yazısız hukuk"},
+{id:"i7",topic:"ilk",q:"Türk devletlerinde 'ikili yönetim' sistemi nasıl işlerdi?",a:"Ülke <strong>doğu (hakan) ve batı (yabgu)</strong> olarak ikiye ayrılarak yönetilirdi. Bu sistem zaman zaman taht kavgalarına ve devletin bölünmesine yol açtı.",tip:"İkili yönetim = Taht kavgası riski"},
+{id:"i8",topic:"ilk",q:"'Kut' anlayışı Türk devlet anlayışında ne ifade eder?",a:"Hükümdarın <strong>Tanrı tarafından seçildiğini</strong> ifade eden kutsal iktidar anlayışıdır. Kut kaybedilirse hükümdar tahtı bırakmak zorundaydı. Veraset sistemini doğrudan etkilerdi.",tip:"Kut = Tanrı'dan gelen iktidar. Kaybedince taht gider."},
+
+/* ── TÜRK-İSLAM DEVLETLERİ ── */
+{id:"ti1",topic:"islami",q:"Karahanlılar İslam tarihinde neden önemlidir?",a:"<strong>İslam'ı kabul eden ilk Türk devletidir (940)</strong>. Türkçeyi resmi dil olarak kullanan ilk Müslüman Türk devletidir. Kutadgu Bilig ve Divanü Lügati't-Türk bu dönemde yazılmıştır.",tip:"Karahanlı = İslam'ı kabul eden ilk Türk devleti"},
+{id:"ti2",topic:"islami",q:"Kutadgu Bilig ve Divanü Lügati't-Türk'ün önemi nedir?",a:"<strong>Kutadgu Bilig:</strong> Yusuf Has Hacip'in siyasetname eseri, Türkçe yazılmış ilk İslami eserdir. <strong>Divanü Lügati't-Türk:</strong> Kaşgarlı Mahmut'un Arapçaya Türkçe öğretmek için yazdığı ilk Türkçe sözlüktür.",tip:"Kutadgu Bilig = ilk İslami Türkçe eser. Divanu = ilk Türkçe sözlük"},
+{id:"ti3",topic:"islami",q:"Gaznelilerin Türk-İslam tarihindeki yeri nedir?",a:"<strong>Sultan unvanını kullanan ilk Türk-İslam devletidir.</strong> Mahmut Gaznevî döneminde Hindistan'a 17 sefer düzenlendi. İran kültürünü benimsediler; Farsça resmi dil oldu.",tip:"Gazneli = Sultan unvanı ilk kez. 17 Hindistan seferi."},
+{id:"ti4",topic:"islami",q:"Büyük Selçuklu Devleti'nin kuruluşu ve önemi?",a:"<strong>Tuğrul Bey</strong> tarafından 1040 Dandanakan Savaşı'nın ardından kuruldu. Abbasi halifesini Büveyhoğulları'ndan kurtardı; Tuğrul Bey'e <strong>'Doğu ve Batı'nın Sultanı'</strong> unvanı verildi.",tip:"Dandanakan 1040 → Büyük Selçuklu. Tuğrul Bey kurtarıcı."},
+{id:"ti5",topic:"islami",q:"Nizamülmülk kimdir ve İslam tarihine katkısı nedir?",a:"Büyük Selçuklu veziridir. <strong>Nizamiye Medreselerini</strong> kurdu — İslam dünyasının ilk düzenli eğitim kurumlarıdır. 'Siyasetname' adlı eseri devlet yönetimi alanında klasik bir kaynak oldu.",tip:"Nizamülmülk = Nizamiye Medreseleri + Siyasetname"},
+{id:"ti6",topic:"islami",q:"Abbasi halifeliğinin Türk-İslam devletleriyle ilişkisi nasıldır?",a:"Abbasiler Türk askerî gücüne muhtaç hâle geldi. Türk komutanlar (<strong>emirler</strong>) fiili iktidarı ele geçirdi. Selçuklular halifeyi koruyarak <strong>siyasi meşruiyet</strong> kazandı.",tip:"Türkler askerî güç → Abbasi meşruiyet = karşılıklı çıkar"},
+
+/* ── ANADOLU SELÇUKLULARI ── */
+{id:"as1",topic:"selcuklu",q:"Malazgirt Savaşı'nın önemi nedir?",a:"<strong>1071'de</strong> Sultan <strong>Alparslan</strong> Bizans İmparatoru Romanos Diogenes'i yendi. <strong>Anadolu'nun Türklere açılması</strong>nın kapısını araladı. Türk-İslam tarihinin dönüm noktasıdır.",tip:"Malazgirt 1071 = Anadolu'nun kapısı açıldı"},
+{id:"as2",topic:"selcuklu",q:"Anadolu Selçuklu Devleti ne zaman ve nasıl kuruldu?",a:"<strong>Kutalmışoğlu Süleyman Şah</strong> tarafından 1077'de Konya merkez alınarak kuruldu. Anadolu'nun iç bölgelerine Türk iskânını sağladı.",tip:"Süleyman Şah 1077 → Konya merkez"},
+{id:"as3",topic:"selcuklu",q:"I. Kılıç Arslan'ın Haçlılarla mücadelesi nasıl sonuçlandı?",a:"<strong>1. Haçlı Seferi (1096)</strong> sırasında İznik düşmesine rağmen direnişi sürdürdü. <strong>1101 Haçlı Seferi'ni</strong> büyük ölçüde dağıttı. Haçlıların Anadolu üzerinden geçişini engellemeye çalıştı.",tip:"I. Kılıç Arslan = Haçlılara karşı direniş"},
+{id:"as4",topic:"selcuklu",q:"Anadolu Selçuklularının en parlak dönemi hangisidir?",a:"<strong>I. Alaeddin Keykubat</strong> dönemi (1220-1237). Ticaret yolları açıldı, kervansaraylar yapıldı, Akdeniz'e ulaşıldı. Selçuklu sanatı ve mimarisi zirveye çıktı.",tip:"I. Alaeddin Keykubat = Selçuklu'nun altın çağı"},
+{id:"as5",topic:"selcuklu",q:"Kösedağ Savaşı'nın (1243) sonuçları nelerdir?",a:"Moğollara karşı ağır yenilgi. Anadolu Selçukluları <strong>Moğol (İlhanlı) hâkimiyetine</strong> girdi. Devletin fiilen çöküşü başladı; Anadolu'da beylikler dönemi doğdu.",tip:"Kösedağ 1243 = Selçuklu çöküşü, beylikler dönemi"},
+{id:"as6",topic:"selcuklu",q:"Anadolu Selçuklularında 'iktâ' sistemi nasıl işliyordu?",a:"Devlet arazisi askerlere <strong>maaş karşılığı</strong> olarak dağıtıldı; asker bu araziden vergi toplar, karşılığında savaşa katılırdı. Osmanlı tımar sisteminin temelini oluşturdu.",tip:"İktâ → Osmanlı tımar sistemi"},
+
+/* ── OSMANLI KURULUŞ ── */
+{id:"ok1",topic:"kuruluş",q:"Osmanlı Devleti'nin kuruluşu ve Ertuğrul Gazi'nin rolü nedir?",a:"<strong>Ertuğrul Gazi</strong>, Söğüt ve Domaniç'te uç beyliği kurdu. Oğlu <strong>Osman Bey</strong> 1299'da bağımsızlığını ilan etti. Selçuklu'nun çöküşü fırsatı yarattı.",tip:"Ertuğrul Söğüt → Osman 1299"},
+{id:"ok2",topic:"kuruluş",q:"Osmanlı'nın Rumeli'ye geçişi nasıl gerçekleşti?",a:"<strong>Orhan Bey</strong> döneminde (1345-46) Bizans iç savaşına müdahale edildi. <strong>Süleyman Paşa</strong> 1354'te Gelibolu'yu aldı. İlk Rumeli toprağı böyle kazanıldı.",tip:"Gelibolu 1354 = Rumeli'ye ilk adım"},
+{id:"ok3",topic:"kuruluş",q:"I. Murat döneminin en önemli gelişmeleri nelerdir?",a:"<strong>Kapıkulu ordusu ve yeniçeri teşkilatı</strong> kuruldu. <strong>Devşirme sistemi</strong> başlatıldı. Osmanlı'nın Balkan hâkimiyeti genişledi. <strong>1. Kosova Savaşı'nda (1389)</strong> I. Murat şehit oldu.",tip:"I. Murat = Yeniçeri + Devşirme + Kosova şehidi"},
+{id:"ok4",topic:"kuruluş",q:"Yıldırım Bayezid döneminin zaferleri ve felaketi nelerdir?",a:"<strong>Niğbolu Savaşı (1396)</strong> Haçlılara karşı kazanıldı. Ancak <strong>Ankara Savaşı'nda (1402)</strong> Timur'a esir düştü. Bu yenilgi Osmanlı'da <strong>Fetret Devri'ni (1402-13)</strong> başlattı.",tip:"Niğbolu zafer → Ankara yenilgi → Fetret devri"},
+{id:"ok5",topic:"kuruluş",q:"Fetret Devri nedir ve nasıl sona erdi?",a:"1402-1413 yılları arası Yıldırım'ın oğulları arasındaki <strong>taht mücadelesi</strong> dönemi. <strong>Çelebi Mehmet</strong> rakiplerini ortadan kaldırarak Osmanlı birliğini yeniden sağladı.",tip:"Fetret 1402-13 → Çelebi Mehmet birleştirdi"},
+{id:"ok6",topic:"kuruluş",q:"Osmanlı'da 'tımar sistemi' nedir?",a:"Devlet arazisinin asker ya da memurlara <strong>hizmet karşılığı</strong> verildiği düzen. Tımar sahibi (sipahi) gelir toplar, savaşa katılır. Merkezi hazineye yük bindirmeden büyük ordu kurulmasını sağladı.",tip:"Tımar = Merkezi bütçe yüklenmeden büyük ordu"},
+
+/* ── OSMANLI YÜKSELME ── */
+{id:"oy1",topic:"yukselme",q:"Fatih Sultan Mehmet İstanbul'u hangi yöntemlerle fethetti?",a:"<strong>Rumeli Hisarı</strong> inşa edildi, boğaz kontrolü alındı. Dev toplar döktürüldü (<strong>Şahi topu</strong>). Gemiler karadan Haliç'e taşındı. <strong>29 Mayıs 1453</strong>'te İstanbul fethedildi.",tip:"Rumeli Hisarı + Şahi top + Gemiler karadan = Fetih"},
+{id:"oy2",topic:"yukselme",q:"İstanbul'un fethinin dünya tarihine etkileri nelerdir?",a:"<strong>Orta Çağ'ın bitişi ve Yeni Çağ'ın başlangıcı</strong> kabul edilir. Bizans İmparatorluğu sona erdi. İpek Yolu büyük ölçüde Osmanlı kontrolüne geçti; bu durum Avrupalıları yeni yollar aramaya itti.",tip:"1453 = Orta Çağ bitti, Yeni Çağ başladı"},
+{id:"oy3",topic:"yukselme",q:"Yavuz Sultan Selim'in Doğu seferleri ne kazandırdı?",a:"<strong>Çaldıran (1514)</strong>: Safevilerle savaşıldı, Doğu Anadolu alındı. <strong>Mercidabık (1516)</strong> ve <strong>Ridaniye (1517)</strong>: Memlükler yenildi, Mısır ve Suriye alındı. <strong>Hilafet Osmanlı'ya geçti.</strong>",tip:"Yavuz = Çaldıran + Mercidabık + Ridaniye + Hilafet"},
+{id:"oy4",topic:"yukselme",q:"Kanuni Sultan Süleyman döneminde Osmanlı nasıl bir güce ulaştı?",a:"Batı'da <strong>Mohaç (1526)</strong> ile Macaristan alındı, Viyana kuşatıldı. Doğu'da Irakeyn Seferi yapıldı. <strong>Barbaros Hayrettin Paşa</strong> ile Akdeniz'de hâkimiyet kuruldu. Kapitülasyonlar Fransa'ya verildi.",tip:"Kanuni = Mohaç + Akdeniz hâkimiyeti + Kapitülasyonlar"},
+{id:"oy5",topic:"yukselme",q:"Osmanlı'da 'devşirme sistemi' nasıl işlerdi?",a:"Hristiyan ailelerin çocukları alınır (<strong>pencik</strong>), Müslüman ve Türk kültürüyle yetiştirilirdi. Yeteneklileri saraya (<strong>Enderun</strong>), diğerleri yeniçeri ocağına alınırdı. Devlete bağlı bürokrasi oluşturdu.",tip:"Devşirme = Pencik → Enderun ya da Yeniçeri"},
+{id:"oy6",topic:"yukselme",q:"Osmanlı'da 'Divan-ı Hümayun' nasıl çalışırdı?",a:"Devlet işlerinin görüşüldüğü en yüksek yürütme organı. <strong>Sadrazam</strong> başkanlığında toplanırdı. Fatih'ten itibaren padişah Divan'a katılmayarak 'kafes'ten izledi.",tip:"Divan = Osmanlı 'bakanlar kurulu'. Fatih'ten sonra padişah katılmadı."},
+{id:"oy7",topic:"yukselme",q:"Osmanlı'nın yükselme döneminde uyguladığı 'istimalet' politikası nedir?",a:"Fethedilen topraklardaki halka <strong>hoşgörüyle davranma</strong> politikası. Vergi indirimi ve din özgürlüğü tanındı. Bu politika Balkan fetihlerinin kalıcılığını sağladı.",tip:"İstimalet = Hoşgörü ile kalıcı fetih"},
+
+/* ── OSMANLI DURAKLAMA ── */
+{id:"od1",topic:"duraklama",q:"Osmanlı'nın duraklama döneminin genel nedenleri nelerdir?",a:"Uzun ve yıpratıcı savaşlar, tımar sisteminin bozulması, <strong>Coğrafi Keşifler</strong> ile ticaret yollarının kaybolması, devşirme ve yeniçeri sorunları, sık padişah değişikliği.",tip:"Coğrafi Keşifler + Tımar bozulması + Yeniçeri sorunu"},
+{id:"od2",topic:"duraklama",q:"I. Ahmet döneminde yapılan 'Ekber ve Erşed' sistemi nedir?",a:"Eski 'kardeş katli' geleneğinin yerini alan veraset sistemi. Artık tahta en büyük ve en olgun erkek geçecektir. Sancağa çıkma sistemi kaldırıldı, şehzadeler <strong>kafes</strong> denilen saraya kapatıldı.",tip:"Ekber-Erşed = Kafes usulü + Kardeş katli sona erdi"},
+{id:"od3",topic:"duraklama",q:"Celali İsyanları nedir ve etkileri nelerdir?",a:"17. yy başında Anadolu'da patlak veren köylü ve asker isyanları. Tımar sisteminin çöküşü, işsiz levent ve sekban grupları neden oldu. <strong>Büyük Kaçgunluk (1603-08)</strong> Anadolu'yu harabeye çevirdi.",tip:"Celali = Tımar çöküşü → Anadolu kaçışı"},
+{id:"od4",topic:"duraklama",q:"Osmanlı'da 'Kadızadeliler hareketi' nedir?",a:"17. yy'da Kadızade Mehmet Efendi önderliğinde gelişen <strong>dini tutuculuk hareketi</strong>. Kahvehane ve tekkelere karşı çıktılar. Yenilikleri bid'at sayarak sosyal reformları engelledi.",tip:"Kadızadeliler = Dini tutuculuk → yeniliğe engel"},
+{id:"od5",topic:"duraklama",q:"Osmanlı'da 'Islahat' çabaları duraklama döneminde nasıl sonuçlandı?",a:"Koçi Bey Risalesi gibi raporlarla sorunlar tespit edildi. Ancak yeniçerilerin ve saray çevresinin direnci reformların önünü kapattı. <strong>Köprülü Ailesinin vezirliği</strong> kısa süreli bir canlanma sağladı.",tip:"Koçi Bey → Sorunlar görüldü ama çözülemedi. Köprülüler kısa canlanma."},
+
+/* ── OSMANLI GERİLEME ── */
+{id:"og1",topic:"gerileme",q:"Karlofça Antlaşması (1699) neden önemlidir?",a:"Osmanlı'nın <strong>ilk büyük toprak kaybı</strong>. Macaristan ve Mora Avusturya'ya, Podolya Polonya'ya, Azak Rusya'ya verildi. Denge Batı lehine bozuldu.",tip:"Karlofça 1699 = İlk büyük toprak kaybı"},
+{id:"og2",topic:"gerileme",q:"Lale Devri (1718-1730) nedir?",a:"<strong>Nevşehirli Damat İbrahim Paşa</strong> döneminde Batı'ya açılma süreci. İstanbul'da matbaa kuruldu (<strong>İbrahim Müteferrika, 1727</strong>), kütüphane ve çiçek aşısı geldi. Patrona Halil isyanıyla sona erdi.",tip:"Lale Devri = Matbaa 1727 + Batıya ilk açılış"},
+{id:"og3",topic:"gerileme",q:"Küçük Kaynarca Antlaşması (1774) neden kritik öneme sahiptir?",a:"Rusya'ya <strong>Kırım üzerinde protektif hak</strong> tanındı (Kırım fiilen kaybedildi). Rusya Osmanlı'daki Ortodoks Hristiyanların koruyucusu oldu. <strong>En ağır gerileme antlaşması</strong> olarak kabul edilir.",tip:"Küçük Kaynarca 1774 = Kırım gitti + Rusya iç işlere karıştı"},
+{id:"og4",topic:"gerileme",q:"Nizam-ı Cedid nedir ve kimin döneminde uygulandı?",a:"<strong>III. Selim</strong> döneminde (1789-1807) Avrupai tarzda kurulan yeni ordu. Avrupa eğitim tekniklerini benimsedi. Yeniçerilerin tepkisi ve <strong>Kabakçı Mustafa İsyanı</strong> ile kaldırıldı.",tip:"Nizam-ı Cedid = III. Selim'in yeni ordusu. Yeniçeriler isyan etti."},
+{id:"og5",topic:"gerileme",q:"Sened-i İttifak (1808) nedir ve önemi nedir?",a:"<strong>II. Mahmut</strong> ile ayanlar arasında imzalandı. Padişah ilk kez ayanların varlığını resmen tanıdı. <strong>Osmanlı'nın Magna Carta'sı</strong> olarak da anılır; merkezi otoritenin zayıfladığını gösterir.",tip:"Sened-i İttifak = Padişah ilk kez kısıtlandı"},
+{id:"og6",topic:"gerileme",q:"II. Mahmut'un yeniçeri ocağını kaldırması nasıl gerçekleşti?",a:"<strong>Vaka-i Hayriye (1826)</strong> adıyla tarihleşti. Yeniçeriler isyan edince II. Mahmut halkı ve ulemayı yanına çekerek ocağı toplarla yok etti. Yerine <strong>Asakir-i Mansure-i Muhammediye</strong> kuruldu.",tip:"Vaka-i Hayriye 1826 = Yeniçeri kaldırıldı"},
+{id:"og7",topic:"gerileme",q:"Tanzimat Fermanı (1839) ne getirdi?",a:"<strong>Mustafa Reşit Paşa</strong> tarafından ilan edildi. <strong>Can, mal ve namus güvencesi</strong>, eşit vergi, adil yargılama hakları tanındı. Osmanlı'da anayasal sürecin başlangıcı sayılır.",tip:"Tanzimat 1839 = Can + Mal + Namus güvencesi"},
+{id:"og8",topic:"gerileme",q:"Islahat Fermanı (1856) neden çıkarıldı?",a:"Kırım Savaşı sonrası <strong>Paris Antlaşması</strong> öncesinde yayımlandı. Azınlıklara daha geniş haklar tanındı. Büyük devletlerin baskısı sonucu çıkan ferman, <strong>iç değil dış baskı</strong> ürünüdür.",tip:"Islahat 1856 = Azınlık hakları + Dış baskı ürünü"},
+
+/* ── OSMANLI DAĞILMA ── */
+{id:"d1",topic:"dagılma",q:"Dağılma dönemini başlatan fikir akımı nedir?",a:"<strong>Fransız İhtilali (1789)</strong> ile yayılan milliyetçilik akımı. Osmanlı'daki azınlıkları bağımsızlık için harekete geçirdi.",tip:"Fransız İhtilali = Dağılmanın fitili"},
+{id:"d2",topic:"dagılma",q:"Yunan İsyanı (1821) nasıl sonuçlandı?",a:"<strong>Mora Antlaşması (1829)</strong> ile Yunanistan bağımsızlığını kazandı. Osmanlı'nın Balkanlardaki ilk büyük toprak ve nüfus kaybı.",tip:"Mora 1829 = İlk kopan Yunanistan"},
+{id:"d3",topic:"dagılma",q:"Kırım Savaşı (1853-56) ne anlama gelir?",a:"Osmanlı <strong>İngiltere ve Fransa</strong> ile Rusya'ya karşı savaştı. <strong>Paris Antlaşması (1856)</strong> ile Osmanlı toprak bütünlüğü güvence altına alındı ama <strong>ilk dış borç</strong> alındı.",tip:"Kırım = Kazandık + Borçlandık + Paris Antlaşması"},
+{id:"d4",topic:"dagılma",q:"Ayastefanos ve Berlin Antlaşmaları arasındaki temel fark nedir?",a:"<strong>Ayastefanos (1878):</strong> Rusya'nın Osmanlı'ya dayattığı, Rusya lehine ağır antlaşma. <strong>Berlin (1878):</strong> Avrupa devletlerinin müdahalesiyle Ayastefanos'u revize etmesiyle oluştu.",tip:"Ayastefanos = Rusya rüyası | Berlin = Avrupa uyandı"},
+{id:"d5",topic:"dagılma",q:"1. ve 2. Balkan Savaşı sonuçları nasıl farklılaşır?",a:"<strong>1. Balkan (1912-13):</strong> Balkan devletleri Osmanlı'yı yendi → Londra Antlaşması. <strong>2. Balkan (1913):</strong> Balkan devletleri kendi aralarında savaştı → Bükreş Antlaşması + Osmanlı Edirne'yi geri aldı.",tip:"1'de kaybettik, 2'de Edirne'yi kaptık!"},
+{id:"d6",topic:"dagılma",q:"Trablusgarp Savaşı (1911-12) ne ile sonuçlandı?",a:"<strong>İtalya</strong> ile yapılan savaş. <strong>Uşi Antlaşması (1912)</strong> ile Libya İtalya'ya bırakıldı. Osmanlı'nın Afrika'daki son toprağı gitti. Mustafa Kemal bu savaşta görev yaptı.",tip:"Uşi 1912 = Libya gitti. Mustafa Kemal görevde."},
+{id:"d7",topic:"dagılma",q:"Mondros Ateşkesi (30 Ekim 1918) ne anlama gelir?",a:"1. Dünya Savaşı'nı Osmanlı için sona erdirdi. Osmanlı'yı <strong>işgale açık</strong> bıraktı. <strong>Kurtuluş Savaşı'nın fiili başlangıç noktası</strong> olarak kabul edilir.",tip:"Mondros = Dağılmanın sonu, Kurtuluş'un başlangıcı"},
+{id:"d8",topic:"dagılma",q:"İttihat ve Terakki Cemiyeti'nin Osmanlı tarihindeki rolü nedir?",a:"1908 <strong>II. Meşrutiyet</strong>ini ilan ettirdi. Osmanlı'yı 1. Dünya Savaşı'na soktu. <strong>Enver, Talat, Cemal Paşalar</strong> 'üç paşalar' olarak ülkeyi yönetti. Savaş sonrası kaçarak yurt dışına gittiler.",tip:"İTC = II. Meşrutiyet + Savaşa giriş + Üç Paşalar"},
+
+/* ── KURTULUŞ SAVAŞI ── */
+{id:"ks1",topic:"kurtulus",q:"Mustafa Kemal'in Samsun'a çıkışı neden önemlidir?",a:"<strong>19 Mayıs 1919</strong> — Kurtuluş Savaşı'nın fiili başlangıcı kabul edilir. Mustafa Kemal burada direniş örgütleme çalışmalarını başlattı.",tip:"19 Mayıs 1919 = Kurtuluş başlangıcı"},
+{id:"ks2",topic:"kurtulus",q:"Amasya Genelgesi (22 Haziran 1919) ne diyordu?",a:"'<em>Milletin istiklali yine milletin azim ve kararıyla kurtarılacaktır.</em>' Kurtuluşun milli iradeye dayandığını ilan eden ilk belgedir. Kongre toplamaya davet içeriyordu.",tip:"Amasya = İlk belge, milli iradeye çağrı"},
+{id:"ks3",topic:"kurtulus",q:"Erzurum Kongresi (23 Temmuz - 7 Ağustos 1919) ne kararlaştırdı?",a:"Doğu Anadolu'nun korunması esas alındı. <strong>Manda ve himaye reddedildi.</strong> Mustafa Kemal başkanlığa seçildi. Milli sınırlar içinde tam bağımsızlık hedeflendi.",tip:"Erzurum = Manda reddedildi + Milli sınırlar"},
+{id:"ks4",topic:"kurtulus",q:"Sivas Kongresi (4-11 Eylül 1919) neden daha kapsamlıdır?",a:"<strong>Tüm Anadolu'yu</strong> temsil eden ilk kongre. Anadolu ve Rumeli Müdafaa-i Hukuk Cemiyeti birleştirildi. Mustafa Kemal yine başkanlığa seçildi.",tip:"Sivas = Tüm Anadolu. Cemiyetler birleşti."},
+{id:"ks5",topic:"kurtulus",q:"TBMM ne zaman ve nasıl açıldı?",a:"<strong>23 Nisan 1920</strong>'de Ankara'da açıldı. Meclis hem yasama hem yürütme görevini üstlendi. Mustafa Kemal başkanlığa seçildi. İlk hükümet (<strong>İcra Vekilleri Heyeti</strong>) kuruldu.",tip:"TBMM = 23 Nisan 1920, Ankara"},
+{id:"ks6",topic:"kurtulus",q:"Sakarya Meydan Muharebesi'nin (23 Ağustos - 13 Eylül 1921) önemi?",a:"Yunanlıların son büyük taarruzu durduruldu. Mustafa Kemal <strong>'Başkomutanlık'</strong> yetkisini aldı ve <strong>Gazi</strong> unvanıyla <strong>Mareşal</strong> rütbesi verildi.",tip:"Sakarya = Son Yunan taarruzu + Mustafa Kemal Gazi oldu"},
+{id:"ks7",topic:"kurtulus",q:"Büyük Taarruz ve Başkomutan Meydan Muharebesi (1922) sonuçları?",a:"<strong>26-30 Ağustos 1922.</strong> Yunan kuvvetleri büyük yenilgiye uğratıldı. <strong>9 Eylül 1922</strong>'de İzmir kurtarıldı. Mudanya Ateşkesi ve ardından Lozan görüşmeleri başladı.",tip:"Büyük Taarruz = 26 Ağustos. İzmir = 9 Eylül 1922."},
+{id:"ks8",topic:"kurtulus",q:"Mudanya Ateşkesi (11 Ekim 1922) ne sağladı?",a:"Osmanlı değil <strong>TBMM hükümeti</strong> imzaladı. İtilaf devletleri Doğu Trakya ve İstanbul'u boşaltmayı kabul etti. <strong>Siyasi zafer</strong> askerî zaferle taçlandırıldı.",tip:"Mudanya = TBMM imzaladı. Siyasi zafer."},
+{id:"ks9",topic:"kurtulus",q:"Lozan Antlaşması (24 Temmuz 1923) neleri belirledi?",a:"Türkiye'nin <strong>tam bağımsızlığı</strong> uluslararası alanda tanındı. Kapitülasyonlar kaldırıldı. Sınırlar belirlendi. <strong>Nüfus mübadelesi</strong> (Türk-Yunan) kararlaştırıldı.",tip:"Lozan = Tam bağımsızlık + Kapitülasyonlar kalktı"},
+
+/* ── ATATÜRK İNKILAPLARI ── */
+{id:"ai1",topic:"inkılap",q:"Saltanatın kaldırılması (1 Kasım 1922) nasıl gerçekleşti?",a:"Saltanat ve hilafet birbirinden ayrıldı, saltanat kaldırıldı. <strong>Vahdettin ülkeyi terk etti.</strong> Bu adım cumhuriyetin ilanının önünü açtı.",tip:"Saltanat = 1 Kasım 1922. Vahdettin kaçtı."},
+{id:"ai2",topic:"inkılap",q:"Cumhuriyetin ilanı (29 Ekim 1923) süreci nasıl gelişti?",a:"Hükümet bunalımı bahanesiyle anayasa değişikliği yapıldı. <strong>Devletin adı Türkiye Cumhuriyeti</strong>, yönetim şekli cumhuriyet oldu. İlk cumhurbaşkanı <strong>Mustafa Kemal</strong> seçildi.",tip:"29 Ekim 1923 = Cumhuriyet + Mustafa Kemal ilk CB"},
+{id:"ai3",topic:"inkılap",q:"Halifeliğin kaldırılması (3 Mart 1924) aynı gün ne getirildi?",a:"Aynı gün <strong>Şeriye mahkemeleri, Diyanet İşleri Başkanlığı kuruldu, Erkan-ı Harbiye Vekâleti</strong> kaldırıldı. Tevhid-i Tedrisat Kanunu çıkarıldı: eğitim tekleştirildi.",tip:"3 Mart 1924 = Hilafet + Şeriye mahkemeleri kaldırıldı"},
+{id:"ai4",topic:"inkılap",q:"Tevhid-i Tedrisat Kanunu (3 Mart 1924) ne getirdi?",a:"Tüm okullar <strong>Milli Eğitim Bakanlığı</strong>'na bağlandı. Medreseler kapatıldı. Eğitimde <strong>laiklik ve birlik</strong> sağlandı. Yabancı ve azınlık okulları denetim altına alındı.",tip:"Tevhid-i Tedrisat = Eğitim birliği. Medreseler kapandı."},
+{id:"ai5",topic:"inkılap",q:"Harf İnkılabı (1 Kasım 1928) ne zaman ve nasıl uygulandı?",a:"Arap alfabesinden Latin alfabesine geçildi. <strong>Millet Mektepleri</strong> açılarak yetişkinlere yeni alfabe öğretildi. Gazete ve kitaplarda yeni harfler zorunlu hale getirildi.",tip:"Harf 1928 = Latin alfabesi + Millet Mektepleri"},
+{id:"ai6",topic:"inkılap",q:"Türk Tarih Kurumu (1931) ve Türk Dil Kurumu (1932) neden kuruldu?",a:"<strong>TTK:</strong> Türk tarihini bilimsel temelde araştırmak. <strong>TDK:</strong> Türkçeyi yabancı dillerin etkisinden arındırmak, özleştirmek. İkisi de Atatürk'ün doğrudan girişimiyle kuruldu.",tip:"TTK 1931 = Tarih. TDK 1932 = Dil arındırma."},
+{id:"ai7",topic:"inkılap",q:"Medeni Kanun (1926) Türk toplumuna ne getirdi?",a:"İsviçre Medeni Kanunu'ndan alındı. <strong>Tek eşlilik, kadının boşanma hakkı, miras eşitliği</strong> sağlandı. Dini nikâh yerine resmi nikâh geçerli oldu.",tip:"Medeni Kanun 1926 = Tek eşlilik + Kadın hakları"},
+{id:"ai8",topic:"inkılap",q:"Kadınlara seçme ve seçilme hakları ne zaman tanındı?",a:"<strong>1930:</strong> Belediye seçimlerinde oy hakkı. <strong>1933:</strong> Muhtarlık seçimleri. <strong>1934:</strong> Milletvekili seçme ve seçilme hakkı — pek çok Avrupa ülkesinden önce.",tip:"1930 Belediye → 1934 TBMM. Avrupa'dan önce!"},
+{id:"ai9",topic:"inkılap",q:"Soyadı Kanunu (1934) ne amaçlamaktaydı?",a:"Herkese <strong>soyadı alma zorunluluğu</strong> getirildi. Unvan ve lakapların kullanımı yasaklandı. TBMM Mustafa Kemal'e <strong>'Atatürk'</strong> soyadını verdi.",tip:"Soyadı 1934 = Herkes soyad aldı. Mustafa Kemal → Atatürk"},
+{id:"ai10",topic:"inkılap",q:"Atatürk inkılapları hangi temel ilkelere dayanır?",a:"<strong>Cumhuriyetçilik, Milliyetçilik, Halkçılık, Devletçilik, Laiklik, Devrimcilik.</strong> Bu altı ilke 1937'de Anayasa'ya girdi ve 'Altı Ok' olarak sembolleşti.",tip:"6 Ok: CumHalDevLaikDevr → 1937 Anayasa'ya girdi"},
+
+/* ── KULLANICI KARTLARI (EKLENDI) ── */
+{id:"x1",topic:"dagılma",q:"Sykes-Picot Gizli Antlaşması nedir?",a:"Günümüz Ortadoğu'sunu şekillendiren gizli antlaşmadır.",tip:"Irak İngiltere'ye, Doğu Ruslara"},
+{id:"x2",topic:"dagılma",q:"McMahon Gizli Antlaşması nedir?",a:"İngilizlerin Araplara bağımsız devlet kurma sözü verdiği gizli antlaşmadır.",tip:"Ulusçuluk, din olgusunun önünde"},
+{id:"x3",topic:"dagılma",q:"Balfour Deklarasyonu nedir?",a:"Filistin'de İsrail Devleti'ni kurma sözü veren belgedir.",tip:"İngiltere ve Yahudiler"},
+{id:"x4",topic:"dagılma",q:"Gizli antlaşmalara katılmayan devletler hangileridir?",a:"<strong>ABD, Ermenistan, Yunanistan, SSCB</strong> gizli antlaşmalara katılmadı.",tip:"4 dışarıda kalan"},
+{id:"x5",topic:"dagılma",q:"Gizli antlaşmaları ifşa eden devlet hangisidir?",a:"<strong>Bolşevik Rusya</strong> — Çarlık Rusya'nın yerini alan SSCB, Sarı Kitap ile belgeleri yayımladı.",tip:"Çarlık gitti, Bolşevikler ifşa etti"},
+{id:"x6",topic:"dagılma",q:"1957 Eisenhower Doktrini nedir?",a:"<strong>ABD</strong>'nin Ortadoğu'da Rus komünizmine karşı aldığı doktrin. SSCB tehdidine karşı bölge ülkelerine destek sözü verildi.",tip:"SSCB Komünizm Tehdidi"},
+{id:"x7",topic:"dagılma",q:"Osmanlı'yı 1. Dünya Savaşı'na sokan olay nedir?",a:"<strong>Goben (Yavuz)</strong> ve <strong>Breslav (Midilli)</strong> adlı iki Alman gemisi boğazdan geçip Rusya'nın askeri tesislerini bombaladı.",tip:"Alman gemileri Rus limanlarını bombaladı"},
+{id:"x8",topic:"dagılma",q:"Sanayi Devrimi'nin asıl sebepleri nelerdir?",a:"<strong>Ham madde arayışı, pazar, silahlanma, bloklaşma</strong> — bu dört unsur Sanayi Devrimi'ni tetikledi.",tip:"Ham madde + Pazar + Silahlanma + Bloklaşma"},
+{id:"x9",topic:"dagılma",q:"1. Dünya Savaşı'nda tarafsız devletler hangileridir?",a:"<strong>Danimarka, İsveç, Norveç, İspanya, Hollanda, İsviçre</strong>",tip:"DİNİH — baş harfler"},
+{id:"x10",topic:"dagılma",q:"2. Balkan Savaşı'nda Edirne'yi geri alan komutan kimdir?",a:"<strong>Enver Paşa</strong> Edirne'yi geri aldı.",tip:"Enver Paşa = Edirne'nin fatihi"},
+{id:"x11",topic:"dagılma",q:"Enver Paşa ve Kuşçubaşı Eşref'in kurduğu cumhuriyet nedir?",a:"<strong>Batı Trakya Cumhuriyeti</strong> — ilk ve en kısa süreli cumhuriyet olma özelliğini taşır.",tip:"Enver Paşa + Kuşçubaşı Eşref kurdu"},
+{id:"x12",topic:"dagılma",q:"Edirne Vak'ası nedir?",a:"<strong>II. Mustafa</strong>'nın tahttan indirilip <strong>III. Selim</strong>'in tahta geçtiği olaydır.",tip:"2. Mustafa out, 3. Selim in"},
+{id:"x13",topic:"dagılma",q:"1699 Karlofça Antlaşması'nı imzalayan devletler hangileridir?",a:"<strong>Venedik, Avusturya, Rusya, Lehistan, Malta</strong>",tip:"VARLM — baş harfler"},
+{id:"x14",topic:"dagılma",q:"Pasarofça Antlaşması nedir?",a:"<strong>Lale Devri'nin başlamasına</strong> zemin hazırlayan antlaşmadır. Venedik ve Avusturya ile Petervaradin Savaşı kaybedildikten sonra imzalandı.",tip:"Pasarofça = Lale Devri başlangıcı"},
+{id:"x15",topic:"dagılma",q:"I. ve II. Belgrad Antlaşmaları ne anlama gelir?",a:"Osmanlı'nın Rusları yenmesinin ardından imzalandı. <strong>I. Mahmut</strong> döneminde, <strong>Humbaracı Ahmet'in</strong> toplarının zaferdeki etkisi büyük olmuştur.",tip:"Humbaracı Ahmet = zafer mimarı"},
+{id:"x16",topic:"dagılma",q:"Küçük Kaynarca Antlaşması Kırım meselesini nasıl çözdü?",a:"<strong>Kırım'ın 1. ilhakı</strong>. Kırım bağımsız ilan edildi ama dini yönden Osmanlı'ya bağlı kaldı.",tip:"Kırım bağımsız ama dini yönden Osmanlı'da"},
+{id:"x17",topic:"dagılma",q:"1779 Aynalıkavak Tenkihnamesi nedir?",a:"<strong>Şahin Giray</strong> Kırım'ın başına geçti. Kırım özerkleştirildi.",tip:"Kırım özerkleşti"},
+{id:"x18",topic:"dagılma",q:"1792 Yaş Antlaşması ne getirdi?",a:"<strong>Kırım Rusya'ya bağlandı.</strong> Osmanlı'nın gerileme dönemi bu antlaşmayla sona erdi.",tip:"Osmanli gerileme sona erdi"},
+{id:"x19",topic:"duraklama",q:"Lale Devri ıslahatları hangi alanlarda yapıldı?",a:"Bu dönemdeki ıslahatlar <strong>hep askeri ve mali</strong> alandadır.",tip:"3. Ahmed dönemi"},
+{id:"x20",topic:"duraklama",q:"Lale Devri'nin önemli kişileri kimlerdir?",a:"Padişah <strong>3. Ahmed</strong>, Sadrazam <strong>Nevşehirli Damat İbrahim Paşa</strong>, şair <strong>Nedim</strong>, minyatürde <strong>Levni</strong>.",tip:"Padişah + Sadrazam + Şair + Ressam"},
+{id:"x21",topic:"duraklama",q:"Lale Devri'nde iç ve dış ticaret nasıl gelişti?",a:"İç dış ticaret gelişti, <strong>çini, kumaş, çuha</strong> atölyeleri kuruldu. Matbaa geldi. Hattat ve müstensihlerin işini kaybetmemesi için <strong>dini eser basımı yasaklandı.</strong>",tip:"Matbaa geldi ama dini eser basılmadı"},
+{id:"x22",topic:"duraklama",q:"Lale Devri'nin önemli gelişmeleri nelerdir?",a:"Avrupa'ya geçici elçi <strong>28 Çelebi Mehmet</strong> (Sefaretname), Tulumbacılar kuruldu, İran'dan çiçek aşısı geldi, Tercüme Odaları kuruldu, Barok-Rokoko eserlere başlandı. Basılan ilk eser: <strong>Vankulu Lügati</strong>.",tip:"28 Çelebi + Tulumba + Aşı + Tercüme + Vankulu"},
+{id:"x23",topic:"duraklama",q:"Lale Devri'nde askeri alanda ıslahat yapıldı mı?",a:"<strong>HAYIR!</strong> Lale Devri'nde askeri alanda hiçbir ıslahat yapılmadı.",tip:"Lale Devri = Askeri ıslahat YOK"},
+{id:"x24",topic:"duraklama",q:"3. Ahmed'in hocası ve önemi nedir?",a:"<strong>Yanyalı Esat Efendi (Muallim-i Sani)</strong> — 3. Ahmed'e Aristo görüşlerini anlatır.",tip:"Muallim-i Sani = 3. Ahmed'in hocası"},
+{id:"x25",topic:"gerileme",q:"I. Mahmut (1730-1754) döneminin önemi nedir?",a:"<strong>İlk Batı tarzı askeri ıslahatlar</strong> yapıldı. Hendesehane açıldı. Humbaracı Ahmet getirildi. Fransa kapitülasyonu kalıcı hale geldi.",tip:"Lale Devri bittikten sonra gelen padişah"},
+{id:"x26",topic:"gerileme",q:"Batı tarzı ilk askeri teknik okul hangisidir?",a:"<strong>Hendesehane</strong> — I. Mahmut döneminde açıldı.",tip:"I. Mahmut + Hendesehane"},
+{id:"x27",topic:"gerileme",q:"Humbaracı Ahmet kimdir?",a:"I. Mahmut'un Batı'dan getirdiği topçu uzmanı. Osmanlı'nın Rusya ve Avusturya'ya karşı savaşı kazanmasında, <strong>I. ve II. Belgrad Antlaşmaları</strong>nın imzalanmasında belirleyici rol oynadı.",tip:"Belgrad zaferinin topçu mimarı"},
+{id:"x28",topic:"gerileme",q:"DHO'nun (Deniz Harp Okulu) temeli olan kurumlar nelerdir?",a:"<strong>Tersane Hendesahanesi</strong> ve <strong>Sürat Topçu Ocakları</strong> — 3. Mustafa dönemi askeri ıslahatı.",tip:"3. Mustafa dönemi"},
+{id:"x29",topic:"gerileme",q:"3. Mustafa döneminin önemli gelişmeleri nelerdir?",a:"<strong>Çeşme'de donanma yakıldı.</strong> <strong>Esham senetleri</strong> (iç borçlanma) başlatıldı.",tip:"Donanma yaktı + Esham = iç borç"},
+{id:"x30",topic:"gerileme",q:"I. Abdülhamit'in ıslahatları nelerdir?",a:"Esham uygulandı, cülüs kaldırıldı, yeniçeri sayımı yapıldı, ulufe alım satımı yasaklandı. <strong>Mühendishane-i Bahri Hümayun</strong> açıldı.",tip:"Esham + Yeniçeri sayımı + Mühendishane-i Bahri"},
+{id:"x31",topic:"gerileme",q:"Baron de Todd ve Mühendishane-i Bahri Hümayun'un ilişkisi nedir?",a:"<strong>I. Abdülhamit</strong> döneminde açılan deniz mühendishanesidir. Dönemin ıslahatçısı <strong>Halil Hamit Paşa</strong>'dır.",tip:"Bahriyeli mühendishane"},
+{id:"x32",topic:"gerileme",q:"Nizam-ı Cedid ve İrad-ı Cedid nedir?",a:"<strong>Nizam-ı Cedid</strong>: 3. Selim'in kurduğu yeni ordu. <strong>İrad-ı Cedid</strong>: Bu ordunun hazinesi.",tip:"3. Selim dönemi"},
+{id:"x33",topic:"gerileme",q:"Mühendishane-i Berri Hümayun (KHO) hangi dönemde açıldı?",a:"<strong>3. Selim</strong> döneminde açıldı. Kara Harp Okulu'nun temelidir.",tip:"3. Selim = Kara mühendishanesi"},
+{id:"x34",topic:"gerileme",q:"3. Selim'in ıslahatları nelerdir?",a:"Matbaa-i Amire (devlet matbaası), Bostancı Tüfekçisi ve modern topçu ocağı kuruldu. Fransızca yabancı dil oldu. Şeyhülislam yetkisi kısıldı — yenilikler siyasi, dini değil. ABD'den Cezayir ticareti için vergi alındı.",tip:"3. Selim = Matbaa + Topçu + Fransızca + Laik anlayış"},
+{id:"x35",topic:"gerileme",q:"Kalıcı elçilikler sistemi hangi padişah döneminde başladı?",a:"<strong>3. Selim</strong> döneminde kalıcı elçilikler uygulamaya konuldu.",tip:"3. Selim = Kalıcı elçilikler"},
+{id:"x36",topic:"gerileme",q:"Nizam-ı Cedid ordusunun ilk ve tek başarısı nedir?",a:"<strong>Cezzar Ahmet Paşa</strong> Mısır'da Napolyon'u yendi. Bu zaferle Fransa ile kadim dostluk bitti.",tip:"Cezzar Ahmet Paşa Napolyon'u yendi"},
+{id:"x37",topic:"gerileme",q:"3. Selim'i tahttan indiren isyan hangisidir?",a:"<strong>Kabakçı Mustafa İsyanı</strong> — Nizam-ı Cedid'in başarısından korkan yeniçeriler isyan etti.",tip:"Nizam-ı Cedid korkuttu, Kabakçı indirdi"},
+{id:"x38",topic:"gerileme",q:"3. Ahmed'i tahttan indiren isyan hangisidir?",a:"<strong>Patrona Halil İsyanı</strong>",tip:"Patrona Halil = 3. Ahmed'i indirdi"},
+{id:"x39",topic:"gerileme",q:"İsyanla gelip isyanla giden tek padişah kimdir?",a:"<strong>3. Ahmed</strong> — Edirne Vak'ası ile geldi, Patrona Halil İsyanı ile gitti.",tip:"3. Ahmed: Edirne Vak'ası geldi, Patrona Halil gitti"},
+{id:"x40",topic:"dagılma",q:"Yunanistan bağımsızlığını hangi antlaşmayla aldı?",a:"<strong>1829 Edirne Antlaşması</strong> ile Yunanistan bağımsızlığını kazandı.",tip:"Avrupa'nın atası Yunanistan = Edirne 1829"},
+{id:"x41",topic:"dagılma",q:"Sırbistan'ın bağımsızlık kazanma süreci nasıl gelişti?",a:"1812 Bükreş → <strong>Ayrıcalık</strong>, 1829 Edirne → <strong>Özerklik</strong>, 1878 Berlin → <strong>Bağımsız</strong>",tip:"Bükreş-Edirne-Berlin = Ayrıcalık-Özerk-Bağımsız"},
+{id:"x42",topic:"dagılma",q:"Mısır Sorunu nedir?",a:"Yunan isyanını bastıran <strong>Kavalalı Mehmet Ali Paşa</strong>'nın isyan ederek <strong>Suriye ve Girit'i</strong> istemesidir.",tip:"Kurtarıcı Mehmet Ali sonra isyan etti"},
+{id:"x43",topic:"dagılma",q:"Hünkar İskelesi Antlaşması nedir?",a:"Osmanlı ile Rusya arasında <strong>Boğazları</strong> konu alan antlaşmadır. Rusya'ya Boğazlar üzerinde özel haklar tanındı.",tip:"Boğazlar = Osmanlı-Rusya Hünkar İskelesi"},
+{id:"x44",topic:"dagılma",q:"Balta Limanı Ticaret Antlaşması (1838) nedir?",a:"Osmanlı ile İngiltere arasında imzalandı. İngiltere ve Avrupa ülkelerine <strong>mali, vergsel ve Boğaz geçişi konusunda kapitülasyon</strong> verildi.",tip:"1838 = Ekonomik kapitülasyon İngiltere'ye"},
+{id:"x45",topic:"dagılma",q:"Mısır sorununda Osmanlı kime başvurdu?",a:"'Denize düşen yılana sarılır' — Mısır sorununda <strong>Rusya'dan yardım</strong> istendi. Denge siyaseti.",tip:"Rusya'ya başvuru = denge siyaseti"},
+{id:"x46",topic:"dagılma",q:"1828-29 Osmanlı-Rus Savaşı ve Edirne Antlaşması sonuçları nelerdir?",a:"Sırbistan özerk + Eflak-Boğdan özerk + <strong>Yunan bağımsız</strong> oldu, Mora gitti. Edirne, Kars, Erzurum Rusya'ya bırakıldı.",tip:"2. Mahmut döneminde ağır kayıplar"},
+{id:"x47",topic:"dagılma",q:"Kuzey Afrika'da ilk işgal edilen toprak neresidir?",a:"<strong>Cezayir</strong> — Fransa tarafından 1830'da işgal edildi.",tip:"Cezayir + Fransa + 1830"},
+{id:"x48",topic:"dagılma",q:"Tanzimat ve Islahat Fermanları'nı ilan eden padişah kimdir?",a:"<strong>Sultan Abdülmecit</strong>",tip:"Abdülmecit = Tanzimat + Islahat"},
+{id:"x49",topic:"kuruluş",q:"Osmanlı Merkez Teşkilatı Divan-ı Hümayun'un sınıfları nelerdir?",a:"<strong>Seyfiye</strong> (Yönetim-Askerlik), <strong>İlmiye</strong> (Din-Eğitim-Hukuk), <strong>Kalemiye</strong> (Maliye-Yazışma)",tip:"S.İ.K. kodlaması"},
+{id:"x50",topic:"kuruluş",q:"Ekber ve Erşed sistemi nedir?",a:"<strong>I. Ahmet</strong> döneminde uygulanan veraset sistemi: en yaşlı ve en olgun hanedan üyesi tahta geçer.",tip:"1. Ahmet = En yaşlı-olgun tahta"},
+{id:"x51",topic:"kuruluş",q:"I. Murat döneminin veraset anlayışı neydi?",a:"<strong>Ülke padişah ve çocuklarınındır.</strong>",tip:"I. Murat = Padişah + çocukları"},
+{id:"x52",topic:"kuruluş",q:"Osman Bey ve Orhan Bey döneminde veraset anlayışı neydi?",a:"<strong>Ülke hanedanın ortak malıdır.</strong>",tip:"Osman + Orhan = Ortak mülk"},
+{id:"x53",topic:"kuruluş",q:"II. Mehmet (Fatih) döneminde veraset anlayışı neydi?",a:"<strong>Ülke padişahın malıdır.</strong> Nizam-ı âlem için kardeş katli helal sayıldı.",tip:"FSM = Ülke padişahın. Kardeş katli helal."},
+{id:"x54",topic:"kuruluş",q:"Yasakname ve Tevkiname nedir?",a:"<strong>Padişahın yasaklaması</strong> anlamına gelen belgeler.",tip:"Yasak ve yakalama emirleri"},
+{id:"x55",topic:"kuruluş",q:"Beratname nedir?",a:"<strong>Atama veya görevden alma belgesi.</strong>",tip:"Berat = Atama/görevden alma"},
+{id:"x56",topic:"kuruluş",q:"Amanname nedir?",a:"<strong>Himaye altına alma belgesi.</strong> Aman diyene kılıç gösterilmez.",tip:"Aman diyene kılıç yok"},
+{id:"x57",topic:"kuruluş",q:"Ahitname nedir?",a:"<strong>Padişahın halka verdiği söz.</strong> 'Ahdim olsun' anlamında.",tip:"Ahitname = Padişah sözü"},
+{id:"x58",topic:"kuruluş",q:"Sultan II. Mehmet'in kullandığı unvanlar nelerdir?",a:"<strong>Kayser-i Rum</strong> ve <strong>Fatih</strong>",tip:"Kayser-i Rum + Fatih"},
+{id:"x59",topic:"kuruluş",q:"Sancağa çıkan ilk ve son şehzade kimlerdir?",a:"<strong>İlk:</strong> I. Murat — <strong>Son:</strong> III. Mehmet",tip:"I. Murat ilk, III. Mehmet son"},
+{id:"x60",topic:"kuruluş",q:"Birun (Dış Saray) ne işe yarardı?",a:"<strong>Saray toplantıları yapılır, elçi kabul edilirdi.</strong>",tip:"Birun = Dışarıya açık alan"},
+{id:"x61",topic:"kuruluş",q:"Enderun (İç Saray) ne işe yarardı?",a:"<strong>Devşirmeler burada okurdu.</strong>",tip:"Enderun = Devşirme okulu"},
+{id:"x62",topic:"kuruluş",q:"Harem ne işe yarardı?",a:"<strong>Saray kadınlarının eğitim gördüğü yerdir.</strong>",tip:"Harem = Saray kadın eğitimi"},
+{id:"x63",topic:"kuruluş",q:"Seyfiye sınıfı kimlerden oluşur?",a:"<strong>Sadrazam, Vezir, Yeniçeri Ağası, Kaptan-ı Derya</strong>",tip:"Seyfiye = Askeri-yönetim"},
+{id:"x64",topic:"kuruluş",q:"İlmiye sınıfı kimlerden oluşur?",a:"<strong>Şeyhülislam, Kazasker</strong> — Devşirme bu sınıfa giremez.",tip:"İlmiye = Din-Hukuk. Devşirme giremez."},
+{id:"x65",topic:"kuruluş",q:"Kalemiye sınıfı kimlerden oluşur?",a:"<strong>Nişancı, Reisülküttab</strong> (Hariciye-Dışişleri Bakanı), <strong>Defterdar</strong> (Maliye)",tip:"Kalemiye = Yazı işleri"},
+{id:"x66",topic:"kuruluş",q:"Taşrada Divan nasıl yapılanırdı?",a:"<strong>Seyfiye:</strong> Beylerbeyi, Sancakbeyi, Tımarlı Sipahi. <strong>İlmiye:</strong> Kadı, Suhte, İmam, Seyyit-Şerif, Nakibüleşraf. <strong>Kalemiye:</strong> Sadaret Kethüdası, Katip, Muhtesip.",tip:"Taşra divanı = Merkez divanın yansıması"},
+{id:"x67",topic:"kuruluş",q:"Kazasker kimdir ve görevi nedir?",a:"İlmiye sınıfında yer alır. Günümüz MEB ve Adalet Bakanı'nın işlevini görür. Kadı ve müderris atamalarını yapar. <strong>Kadının hükmünü yalnızca Kazasker bozabilir.</strong>",tip:"Kazasker = MEB + Adalet Bakanlığı"},
+{id:"x68",topic:"kuruluş",q:"Kubbealti Veziri'nin askeri görevi nedir?",a:"<strong>Serasker</strong> sıfatıyla orduya komutanlık yapar.",tip:"Kubbealtı Veziri = Serasker"},
+{id:"x69",topic:"kuruluş",q:"Veziriazam (Sadrazam)'ın askeri unvanı nedir?",a:"<strong>Serdar-ı Ekrem</strong> unvanıyla orduya komutanlık yapar.",tip:"Sadrazam = Serdar-ı Ekrem"},
+{id:"x70",topic:"kuruluş",q:"Defterdar kimdir?",a:"Günümüz <strong>Maliye Bakanı</strong>.",tip:"Defterdar = Maliye Bakanı"},
+{id:"x71",topic:"kuruluş",q:"Nişancı-Tuğraci'nin görevi nedir?",a:"<strong>Örfi hukuk uzmanı</strong>. Fermana tuğra koyar. Fethedilen arazi kayıtlarını Tımar Tahrir (Tapu) Defteri'ne kaydeder.",tip:"Nişancı = Tuğra + Örfi hukuk + Tapu"},
+{id:"x72",topic:"kuruluş",q:"Erkan-ı Erbaa nedir?",a:"Osmanlı toplumunu oluşturan 4 unsur: <strong>Ümera (asker), Ulema (din adamı), Esnaf, Köylüler</strong>",tip:"4 sınıf: Asker + Din + Esnaf + Köylü"},
+{id:"x73",topic:"ilk",q:"Altı Bölük Halkı nedir?",a:"<strong>Sipahlar, Silahtar</strong> ve <strong>Sağ-Sol Garipller, Sağ-Sol Ulufeciler</strong>",tip:"Kapıkulu süvarisi 6 bölük"},
+{id:"x74",topic:"ilk",q:"Sipahlar ve Silahtar'ın görevi nedir?",a:"<strong>Padişahın çadırını korur.</strong>",tip:"Çadır koruma"},
+{id:"x75",topic:"ilk",q:"Sağ Sol Garipller'in görevi nedir?",a:"<strong>Hazineyi korur.</strong>",tip:"Hazine koruma"},
+{id:"x76",topic:"kuruluş",q:"Ulufeciler'in görevi nedir?",a:"<strong>Padişahın sancağını korur.</strong>",tip:"Sancak koruma"},
+{id:"x77",topic:"kuruluş",q:"Akıncılar kimdir?",a:"Sınırda görev alan <strong>hafif atlı birlikler</strong>.",tip:"Sınır + Hafif atlı"},
+{id:"x78",topic:"kuruluş",q:"Azaplar kimdir?",a:"<strong>Bekâr erkeklerden oluşan öncü birlik.</strong>",tip:"Azap = Bekâr öncü birlik"},
+{id:"x79",topic:"kuruluş",q:"Deliler kimdir?",a:"Sınırlarda bulunur, <strong>en önde giderler.</strong>",tip:"Deliler = En önde giden sınır birlikleri"},
+{id:"x80",topic:"kuruluş",q:"Beşliler kimdir?",a:"Sınır boylarında <strong>kaleleri korurlar.</strong> Her 5 kişiden 1'i alınır.",tip:"5'te 1 = Beşliler"},
+{id:"x81",topic:"kuruluş",q:"Turnalar'ın görevi nedir?",a:"Savaş esnasında <strong>haberleşmeyi sağlarlar.</strong>",tip:"Turna = Haberleşme"},
+{id:"x82",topic:"kuruluş",q:"Derbentçiler'in görevi nedir?",a:"<strong>Köprü ve geçitleri korurlar.</strong>",tip:"Derbentçi = Köprü-geçit koruma"},
+{id:"x83",topic:"kuruluş",q:"Bağlı beylik askerleri kimlerdir?",a:"<strong>Motronos:</strong> Geçitleri korur. <strong>Cerahor:</strong> Silah taşıma işi. <strong>Voynuk:</strong> At bakıcısı.",tip:"Motronos + Cerahor + Voynuk"},
+{id:"x84",topic:"kuruluş",q:"Osmanlı donanmasının yakıldığı savaşlar hangileridir?",a:"<strong>İnebahtı</strong> Haçlı 1571 — <strong>Çeşme</strong> Rus 1770 — <strong>Navarin</strong> Rus+İng+Fr 1827 — <strong>Sinop</strong> Rus 1853",tip:"İÇNS = İnebahtı-Çeşme-Navarin-Sinop"},
+{id:"x85",topic:"kuruluş",q:"Dirlik toprakları nasıl sınıflandırılır?",a:"<strong>Has:</strong> Padişaha ait, geliri 100.000 akçe üstü. <strong>Zeamet:</strong> 20.000-100.000 akçe, Divan-ı Hümayun üyelerine. <strong>Tımar:</strong> 3.000-20.000 akçe.",tip:"Has + Zeamet + Tımar = 100K / 20K / 3K sınırı"},
+{id:"x86",topic:"kuruluş",q:"Çiftbozan vergisi nedir?",a:"Toprağı üst üste ekmeyenden alınan <strong>en ağır vergi</strong>.",tip:"Toprağı ekme = Çiftbozan cezası"},
+{id:"x87",topic:"kuruluş",q:"Mukataa ve İltizam nedir?",a:"Geliri doğrudan hazineye aktarılan toprak. <strong>İltizam usulüyle</strong> (mültezimlere ihale edilerek) toplanır.",tip:"Mukataa = Hazineye direkt. İltizamla toplanır."},
+{id:"x88",topic:"kuruluş",q:"Paşmaklık nedir?",a:"<strong>Saray kadınlarının masrafına</strong> ayrılan topraklardır.",tip:"Paşmaklık = Saray kadınları için"},
+{id:"x89",topic:"kuruluş",q:"Yurtluk nedir?",a:"Geliri <strong>akıncılara</strong> bırakılan topraklar.",tip:"Yurtluk = Akıncılara"},
+{id:"x90",topic:"kuruluş",q:"Ocaklık nedir?",a:"Geliri <strong>kale muhafızları ve tersaneye</strong> bırakılan toprak geliri.",tip:"Ocaklık = Kale + Tersane"},
+{id:"x91",topic:"kuruluş",q:"Mevat nedir?",a:"<strong>Çöl, ölü toprak</strong> demektir.",tip:"Mevat = Ölü toprak"},
+{id:"x92",topic:"kuruluş",q:"Arpalık nedir?",a:"Ek gelir olarak verilen, <strong>emekli maaşı</strong> niteliğindeki topraktır.",tip:"Arpalık = Osmanlı emekliliği"},
+{id:"x93",topic:"kuruluş",q:"Siyakat nedir?",a:"Mali kayıtların tutulduğu <strong>şifreli yazı</strong> sistemi.",tip:"Siyakat = Şifreli mali yazı"},
+{id:"x94",topic:"kuruluş",q:"Osmanlı klasik dönem ekonomisinin 3 ilkesi nelerdir?",a:"<strong>İaşecilik:</strong> Arz-talep dengesi, bol mal. <strong>Gelenekçilik:</strong> Mevcut düzenin korunması. <strong>Fiskalizm:</strong> Gelirlerin maksimum, giderlerin minimum tutulması.",tip:"İaşe + Gelenek + Fiskalizm"},
+{id:"x95",topic:"kuruluş",q:"Ağnam vergisi nedir?",a:"<strong>Küçükbaş hayvan vergisi.</strong> Şer'i vergi.",tip:"Ağnam = Küçükbaş hayvan vergisi"},
+{id:"x96",topic:"kuruluş",q:"Resmi Benak vergisi nedir?",a:"<strong>Evli olanlardan</strong> alınan vergi.",tip:"Benak = Evli vergisi"},
+{id:"x97",topic:"kuruluş",q:"Resmi Mücerred vergisi nedir?",a:"<strong>Bekârlardan</strong> alınan vergi.",tip:"Mücerred = Bekâr vergisi"},
+{id:"x98",topic:"kuruluş",q:"Avariz vergisi nedir?",a:"<strong>Olağanüstü hallerde</strong> alınan vergi. Yangın, deprem gibi durumlarda uygulanır.",tip:"Avariz = Olağanüstü hal vergisi"},
+{id:"x99",topic:"kuruluş",q:"Bac vergisi nedir?",a:"<strong>Çarşıda esnaftan</strong> alınan vergi.",tip:"Bac = Esnaf-çarşı vergisi"},
+{id:"x100",topic:"kuruluş",q:"İspençe vergisi nedir?",a:"<strong>Gayrimüslimlerden</strong> alınan toprak vergisi.",tip:"İspençe = Gayrimüslim toprak vergisi"},
+{id:"x101",topic:"kuruluş",q:"İlk Osmanlı bankası hangisidir?",a:"<strong>Bank-ı Dersaadet</strong> (İstanbul Bankası)",tip:"Bank-ı Dersaadet = İlk Osmanlı bankası"},
+{id:"x102",topic:"kuruluş",q:"İngiliz-Fransız ortaklığıyla açılan merkez bankası nedir?",a:"<strong>Bank-ı Osmanlı (Şahane)</strong>",tip:"İngiliz + Fransız = Bank-ı Osmanlı"},
+{id:"x103",topic:"kuruluş",q:"II. Abdülhamit'in kurduğu ve günümüzde varlığını sürdüren banka hangisidir?",a:"<strong>Ziraat Bankası</strong> — 1888'de kuruldu.",tip:"Ziraat Bankası 1888 = II. Abdülhamit"},
+{id:"x104",topic:"kuruluş",q:"Gedik nedir?",a:"<strong>Dükkan açma izni.</strong>",tip:"Gedik = Dükkan izni"},
+{id:"x105",topic:"kuruluş",q:"Narh kesme nedir?",a:"<strong>Taban ve tavan fiyat</strong> belirlenmesi.",tip:"Narh = Fiyat kontrolü"},
+{id:"x106",topic:"kuruluş",q:"Encümen-i Daniş nedir?",a:"<strong>Bilim akademisi</strong> ve müfredat kurumu.",tip:"Encümen-i Daniş = Bilim akademisi"},
+{id:"x107",topic:"kuruluş",q:"Darü'l-Bedayi nedir?",a:"<strong>1917'de kurulan tiyatro</strong> kurumu.",tip:"Darü'l-Bedayi = 1917 Tiyatro"},
+{id:"x108",topic:"kuruluş",q:"Darü'l-Elhan nedir?",a:"<strong>1917'de kurulan konservatuar.</strong>",tip:"Darü'l-Elhan = 1917 Konservatuar"},
+{id:"x109",topic:"kuruluş",q:"Himaye-i Etfal nedir?",a:"<strong>Çocuk Esirgeme Kurumu.</strong>",tip:"Himaye-i Etfal = Çocuk Esirgeme"},
+{id:"x110",topic:"kuruluş",q:"Beşik Uleması nedir?",a:"<strong>Alimin oğlu da alimdir</strong> anlayışı — ilmiye sınıfında babadan oğula geçen rütbe sistemi.",tip:"Beşik Uleması = İlmiyede irtibat"},
+{id:"x111",topic:"kuruluş",q:"Osmanlı'nın ilk müderrisi kimdir?",a:"<strong>Davud-i Kayseri</strong>",tip:"İlk müderris = Davud-i Kayseri"},
+{id:"x112",topic:"kuruluş",q:"Sahn-ı Seman Medreseleri nedir?",a:"<strong>Fatih'in İstanbul'da açtığı üniversiteler.</strong>",tip:"Sahn-ı Seman = Fatih'in üniversiteleri"},
+{id:"x113",topic:"kuruluş",q:"Ali Kuşçu kimdir?",a:"<strong>Matematik ve astronomi</strong> bilgini. Risaletü'l-Fethiye eserini FSM'nin isteğiyle yazdı.",tip:"Ali Kuşçu = Matematik + Astronomi. FSM isteği."},
+{id:"x114",topic:"kuruluş",q:"Piri Reis'in eserleri nelerdir?",a:"<strong>Kitab-ı Bahriye</strong> ve dünyaya ait ilk haritalar. Amerika'ya 'Diyar-ı Antilla' dedi.",tip:"Piri Reis = Kitab-ı Bahriye + Diyar-ı Antilla"},
+{id:"x115",topic:"kuruluş",q:"Seydi Ali Reis'in eseri nedir?",a:"<strong>Mirâtü'l-Memâlik</strong> — 'Memleketlerin Aynası'",tip:"Seydi Ali Reis = Memleketlerin Aynası"},
+{id:"x116",topic:"kuruluş",q:"Takiyüddin Mehmet kimdir?",a:"<strong>İlk rasathaneyi</strong> kuran bilim insanı.",tip:"Takiyüddin = İlk rasathane"},
+{id:"x117",topic:"kuruluş",q:"Matrakçı Nasuh kimdir?",a:"<strong>Minyatür, coğrafya ve matematik</strong> alanlarında uzman. Matrak oyununu icat etti. Kanuni döneminde yaşadı.",tip:"Matrakçı = Minyatür + Coğrafya + Matrak oyunu"},
+{id:"x118",topic:"kuruluş",q:"Katip Çelebi'nin eserleri nelerdir?",a:"<strong>Cihannüma</strong> ve <strong>Keşfü'z-Zünun</strong>. Hacı Kalfa lakabıyla da bilinir.",tip:"Katip Çelebi = Cihannüma + Keşfü'z-Zünun"},
+{id:"x119",topic:"kuruluş",q:"Lagari Hasan Çelebi kimdir?",a:"<strong>Roket ile uçtuğu</strong> kayıtlara geçen Osmanlı mucidi.",tip:"Lagari = Roket ile uçtu"},
+{id:"x120",topic:"kuruluş",q:"Ahmet Cevdet Paşa'nın eserleri nelerdir?",a:"<strong>Mecelle</strong> (Osmanlı medeni kanunu), <strong>Tezâkir</strong> ve <strong>Kısas-ı Enbiya</strong>.",tip:"Cevdet Paşa = Mecelle + Tezakir"},
+{id:"x121",topic:"kuruluş",q:"Akşemseddin kimdir?",a:"<strong>Fatih'in hocası</strong> ve mikrobiyolojinin babası olarak kabul edilir.",tip:"Akşemseddin = Fatih'in hocası + Mikrobiyoloji"},
+{id:"x122",topic:"kuruluş",q:"Vakayinüvis nedir? İlk ve son vakayinüvis kimdir?",a:"Resmi Osmanlı tarihçisi demektir. <strong>İlk:</strong> Naima — <strong>Son:</strong> Abdurrahman Şeref",tip:"İlk = Naima, Son = Abdurrahman Şeref"},
+{id:"x123",topic:"kuruluş",q:"Mevlit (Vesiletü'n-Necat) kimin eseridir?",a:"<strong>Süleyman Çelebi</strong>",tip:"Mevlit = Süleyman Çelebi"},
+{id:"x124",topic:"kuruluş",q:"Takvim-i Vekayi nedir?",a:"<strong>İlk resmi gazete.</strong> II. Mahmut döneminde çıkarıldı.",tip:"Takvim-i Vekayi = İlk resmi gazete, II. Mahmut"},
+{id:"x125",topic:"kuruluş",q:"Ceride-i Havadis nedir?",a:"<strong>Yarı resmi gazete.</strong>",tip:"Ceride-i Havadis = Yarı resmi"},
+{id:"x126",topic:"kuruluş",q:"Tercüman-ı Ahval nedir?",a:"<strong>İlk özel gazete.</strong>",tip:"Tercüman-ı Ahval = İlk özel gazete"},
+{id:"x127",topic:"kuruluş",q:"Ayine-i Vatan nedir?",a:"<strong>İlk resimli gazetedir.</strong>",tip:"Ayine-i Vatan = İlk resimli gazete"},
+{id:"x128",topic:"kuruluş",q:"Mirat nedir?",a:"<strong>İlk resmi dergidir.</strong>",tip:"Mirat = İlk resmi dergi"},
+{id:"x129",topic:"kuruluş",q:"Diyojen nedir?",a:"<strong>İlk mizah dergisi.</strong> Teodor Kasap tarafından çıkarıldı.",tip:"Diyojen = İlk mizah dergisi. Teodor Kasap."},
+{id:"x130",topic:"kuruluş",q:"Şükufezar nedir?",a:"<strong>İlk Türk Müslüman kadın dergisidir.</strong>",tip:"Şükufezar = İlk Müslüman Türk kadın dergisi"},
+{id:"x131",topic:"kuruluş",q:"Fatma Aliye kimdir?",a:"Ahmet Cevdet Paşa'nın kızı. <strong>Muhaderat-ı Nisvan</strong> eserinin sahibi. 50 TL'nin üzerindedir.",tip:"Fatma Aliye = Cevdet Paşa'nın kızı + 50 TL"},
+{id:"x132",topic:"kuruluş",q:"Hat sanatı nedir?",a:"<strong>Güzel yazı sanatı.</strong>",tip:"Hat = Güzel yazı"},
+{id:"x133",topic:"kuruluş",q:"Tezhip sanatı nedir?",a:"<strong>Süsleme sanatı.</strong>",tip:"Tezhip = Süsleme"},
+{id:"x134",topic:"kuruluş",q:"Vitray/Sırça sanatı nedir?",a:"<strong>Cam sanatlarıdır.</strong> Çeşmibülbül örnek gösterilebilir.",tip:"Vitray = Cam sanatı"},
+{id:"x135",topic:"kuruluş",q:"Neccar nedir?",a:"<strong>Ahşap işlemeciliği</strong> sanatı.",tip:"Neccar = Ahşap işleme"},
+{id:"x136",topic:"kuruluş",q:"Ebru nedir?",a:"<strong>Su üzerine resim yapma sanatı.</strong>",tip:"Ebru = Su üzeri resim"},
+{id:"x137",topic:"kuruluş",q:"Osman Hamdi Bey kimdir?",a:"Osmanlı'da <strong>müzeciliğin babası.</strong> Sanayi-i Nefise Mektebi'ni kurdu (günümüz Mimar Sinan Üni.). Eserleri: Kaplumbağa Terbiyecisi, Kuran Okuyan Kız, Cami Önü.",tip:"Osman Hamdi = Müzecilik + Kaplumbağa Terbiyecisi"},
+{id:"x138",topic:"kuruluş",q:"Mimar Hayrettin'in eseri nedir?",a:"<strong>Mostar Köprüsü</strong>",tip:"Hayrettin = Mostar Köprüsü"},
+{id:"x139",topic:"kuruluş",q:"Anıtkabir'i tasarlayan mimarlar kimlerdir?",a:"<strong>Emin Onat ve Orhan Arda</strong>",tip:"Anıtkabir = Emin Onat + Orhan Arda"},
+{id:"x140",topic:"kuruluş",q:"Mimar Sinan'ın eserleri hangi sırayla sınıflandırılır?",a:"<strong>Çıraklık:</strong> Şehzade Camii — <strong>Kalfalık:</strong> Süleymaniye Camii — <strong>Ustalık:</strong> Selimiye Camii",tip:"Şehzade-Süleymaniye-Selimiye = Çırak-Kalfa-Usta"},
+{id:"x141",topic:"kuruluş",q:"Bedesten nedir?",a:"<strong>Üstü kapalı pazar yeri.</strong> Her çeşit malzemenin satıldığı AVM niteliğindedir.",tip:"Bedesten = Kapalı pazar, her şey var"},
+{id:"x142",topic:"kuruluş",q:"Arasta nedir?",a:"<strong>Tek çeşit ürünlerin</strong> satıldığı pazar yeri.",tip:"Arasta = Tek çeşit ürün"},
+{id:"x143",topic:"kuruluş",q:"Kapan nedir?",a:"<strong>Tek cins mal satılan yer.</strong> Örnek: Un Kapanı.",tip:"Kapan = Tek cins. Un Kapanı örnek."},
+{id:"x144",topic:"kuruluş",q:"Ases kimdir?",a:"<strong>Bekçi.</strong> Gece güvenliğini sağlar.",tip:"Ases = Gece bekçisi"},
+{id:"x145",topic:"kuruluş",q:"Şehremini kimdir?",a:"<strong>Belediye başkanı.</strong>",tip:"Şehremini = Belediye başkanı"},
+{id:"x146",topic:"kuruluş",q:"Zimem nedir?",a:"<strong>Borç defteri.</strong>",tip:"Zimem = Borç defteri"},
+{id:"x147",topic:"ilk",q:"Tekaütlük nedir?",a:"<strong>Osmanlı emeklilik sistemi.</strong>",tip:"Tekaütlük = Osmanlı emekliliği"},
+{id:"x148",topic:"ilk",q:"Esame nedir?",a:"<strong>Kapıkulu askerlerinin kaydının tutulduğu defter.</strong>",tip:"Esame = Kapıkulu kayıt defteri"},
+{id:"x149",topic:"dagılma",q:"Derviş Vahdet kim midir?",a:"<strong>Volkan Gazetesi</strong> başyazarıdır. 31 Mart Ayaklanması'nda idam edildi.",tip:"Volkan Gazetesi + 31 Mart idam"},
+{id:"x150",topic:"kuruluş",q:"Ahmet Karahisari kimdir?",a:"Kanuni'nin isteğiyle <strong>el yazması Kuran</strong> yazmıştır.",tip:"Karahisari = Kanuni'ye el yazması Kuran"},
+{id:"x151",topic:"kuruluş",q:"Şeyh Hamdullah kimdir?",a:"<strong>Kubbetü'l-Hattat</strong> — Hattatlığın piri olarak bilinir.",tip:"Şeyh Hamdullah = Hattatlığın piri"},
+{id:"x152",topic:"kuruluş",q:"Nakkaş Osman kimdir?",a:"<strong>Şehnâme-i Hümayun</strong> eseri ile III. Murat'a kadar sultan portreleri çizdi.",tip:"Nakkaş Osman = Sultan portreleri"},
+{id:"x153",topic:"kuruluş",q:"Medresetü'l-Kudat nedir?",a:"<strong>Kadı yetiştiren medrese.</strong>",tip:"Kudat = Kadı yetiştiren"},
+{id:"x154",topic:"kuruluş",q:"Medresetü'l-Vaiz nedir?",a:"<strong>Vaiz yetiştiren medrese.</strong>",tip:"Vaiz = Vaiz yetiştiren"},
+{id:"x155",topic:"kuruluş",q:"Fütüvvet nedir?",a:"<strong>Abbasilerdeki lonca-ahilik</strong> organizasyonu.",tip:"Fütüvvet = Abbasi loncaları"},
+{id:"x156",topic:"kuruluş",q:"Mücerrebname kimin eseridir?",a:"<strong>Sabuncuoğlu Şerafettin</strong>",tip:"Mücerrebname = Sabuncuoğlu Şerafettin"},
+{id:"x157",topic:"kuruluş",q:"Yurtluk-Ocaklık'ın çifte işlevi nedir?",a:"Hem sınırları koruyanlarla hem de bir bölgenin Osmanlı'ya katılmasında etkili olan mahalli beylere verilen topraklardır.",tip:"Sınır koruma + Katılımda etki = Yurtluk-Ocaklık"},
+{id:"x158",topic:"kuruluş",q:"İlk Türk kadın ressam kimdir?",a:"<strong>Mihri Müşfik</strong>",tip:"Mihri Müşfik = İlk Türk kadın ressam"},
+{id:"x159",topic:"kuruluş",q:"Hilye nedir?",a:"<strong>Yazi süsleme sanatı.</strong> Hz. Peygamber'in özelliklerini anlatan süslü hatlardır.",tip:"Hilye = Yazı + Süsleme sanatı"},
+{id:"x160",topic:"kuruluş",q:"Tereke Defteri nedir?",a:"Kadi sicilleri içinde, <strong>Kassam</strong> adlı görevlinin kişinin evlilik amacı, çocuk sayısı gibi bilgileri kaydettiği dефтерlerdir.",tip:"Tereke Defteri = Kadi sicilleri içinde"},
+{id:"x161",topic:"kuruluş",q:"Gazavatname nedir?",a:"<strong>Gaza, cihad ve fetihlerin anlatıldığı eserlerin</strong> genel adıdır.",tip:"Gazavatname = Fetih anlatıları"},
+{id:"x162",topic:"kuruluş",q:"Hatt-ı Hümayun nedir?",a:"<strong>Padişah tarafından bizzat yazılmış emir.</strong>",tip:"Hatt-ı Hümayun = Padişah el yazısıyla"},
+{id:"x163",topic:"kuruluş",q:"Hal Fetvası nedir?",a:"Padişahın tahttan indirilmesine <strong>meşruiyet kazandıran belge.</strong>",tip:"Hal Fetvası = Taht indirme meşruiyeti"},
+{id:"x164",topic:"kuruluş",q:"Surre Alayı nedir?",a:"Seyyid-Şeriflere ve hac güzergahındaki halka gönderilen hediyeleri dağıtan <strong>teşkilat.</strong>",tip:"Surre Alayı = Hac hediyesi teşkilatı"},
+{id:"x165",topic:"kurtulus",q:"18 Mart Kahramanı olarak anılan komutan kimdir?",a:"<strong>Cevat Çobanli Paşa</strong> — 18 Mart Çanakkale Deniz Zaferi'nin kahramanıdır.",tip:"18 Mart = Cevat Çobanlı Paşa"}
+];
+
+// Uygulama Değişkenleri
+var CUSTOM_CARDS_KEY = "kpss_custom_cards";
+var allCards = [];
+var customCards = [];
+var examQueue = [];
+var wrongCards = [];
+var currentExamCard = null;
+var examTotalCount = 0;
+
+var topicQueue = [];
+var currentTopicIndex = 0;
+var currentPage = "home";
+
+// Başlangıç Yüklemesi
+function loadCustomCards() {
+  var stored = localStorage.getItem(CUSTOM_CARDS_KEY);
+  if(stored) {
+    try { customCards = JSON.parse(stored); } catch(e) {}
+  }
+  allCards = DEFAULT_CARDS.concat(customCards);
+}
+
+// ═══════════════════════════════
+// SAYFA YÖNLENDİRME (ROUTER)
+// ═══════════════════════════════
+function showPage(page, topicId = null) {
+  currentPage = page;
+  document.querySelectorAll(".bnav-item").forEach(n => n.classList.remove("active"));
+  var backBtn = document.getElementById("topbar-back");
+
+  if (page === "home") {
+    document.getElementById("bn-home").classList.add("active");
+    document.getElementById("topbar-title").textContent = "Konular";
+    document.getElementById("topbar-sub").textContent = "Çalışmak istediğin konuyu seç";
+    backBtn.style.display = "none";
+    renderHome();
+  } else if (page === "sinav") {
+    document.getElementById("bn-sinav").classList.add("active");
+    document.getElementById("topbar-title").textContent = "Sınav Modu";
+    document.getElementById("topbar-sub").textContent = "Rastgele 20 Kart";
+    backBtn.style.display = "block";
+    startExam();
+  } else if (page === "ekle") {
+    document.getElementById("bn-ekle").classList.add("active");
+    document.getElementById("topbar-title").textContent = "Kart Ekle";
+    document.getElementById("topbar-sub").textContent = "Kendi kartlarını oluştur";
+    backBtn.style.display = "block";
+    renderAddForm();
+  } else if (page === "topic" && topicId) {
+    document.getElementById("bn-home").classList.add("active");
+    document.getElementById("topbar-title").textContent = TOPICS[topicId].label;
+    document.getElementById("topbar-sub").textContent = "Konu Çalışması";
+    backBtn.style.display = "block";
+    startTopicStudy(topicId);
+  }
+}
+
+// ═══════════════════════════════
+// ANA SAYFA (KONU LİSTESİ)
+// ═══════════════════════════════
+function renderHome() {
+  var ca = document.getElementById("content-area");
+  var html = "<div class='topic-grid'>";
+  Object.keys(TOPICS).forEach(t => {
+    var count = allCards.filter(c => c.topic === t).length;
+    html += `<div class='topic-card' onclick="showPage('topic', '${t}')">
+      <div class='topic-icon'>${TOPICS[t].icon}</div>
+      <div class='topic-name'>${TOPICS[t].label}</div>
+      <div style="font-family:'DM Mono',monospace; font-size:12px; color:var(--text3);">${count} Kart</div>
+    </div>`;
+  });
+  html += "</div>";
+  ca.innerHTML = html;
+}
+
+// ═══════════════════════════════
+// KONU ÇALIŞMA MODU
+// ═══════════════════════════════
+function startTopicStudy(topicId) {
+  topicQueue = allCards.filter(c => c.topic === topicId);
+  currentTopicIndex = 0;
+  
+  if (topicQueue.length === 0) {
+    document.getElementById("content-area").innerHTML = `<div style='text-align:center;padding:50px;color:var(--text3)'>Bu konuya ait henüz kart bulunmuyor.</div>`;
+    return;
+  }
+  renderTopicCard();
+}
+
+function renderTopicCard() {
+  var ca = document.getElementById("content-area");
+  var card = topicQueue[currentTopicIndex];
+  var tagLabel = (TOPICS[card.topic] ? TOPICS[card.topic].label : "Genel").toUpperCase();
+  var progressPct = ((currentTopicIndex + 1) / topicQueue.length) * 100;
+
+  ca.innerHTML = `
+    <div class="exam-status">Kart: ${currentTopicIndex + 1} / ${topicQueue.length}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%"></div></div>
+    
+    <div class="exam-container">
+      <div class="flip-card-wrapper" id="topic-card" onclick="flipCard('topic-card')">
+        <div class="flip-card-inner">
+          <div class="flip-face flip-front">
+            <div class="c-tag">${tagLabel}</div>
+            <div class="c-q">${card.q}</div>
+            <div class="c-hint">Cevabı görmek için karta dokun</div>
+          </div>
+          <div class="flip-face flip-back">
+            <div class="c-tag">CEVAP</div>
+            <div class="c-a">${card.a}</div>
+            ${card.tip ? `<div style="margin-top:15px; font-size:14px; color:var(--accent); font-weight:600;">💡 ${card.tip}</div>` : ""}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; width:100%; max-width:380px; margin: 20px auto 0; gap:16px;">
+        <button class="btn-exam" style="background:var(--border2); color:var(--text);" onclick="prevTopicCard()">Önceki</button>
+        <button class="btn-exam btn-nav" onclick="nextTopicCard()">Sonraki</button>
+    </div>
+  `;
+}
+
+function nextTopicCard() {
+  if (currentTopicIndex < topicQueue.length - 1) {
+    currentTopicIndex++;
+    renderTopicCard();
+  } else {
+    alert("Bu konudaki tüm kartları tamamladın! 🎉");
+  }
+}
+
+function prevTopicCard() {
+  if (currentTopicIndex > 0) {
+    currentTopicIndex--;
+    renderTopicCard();
+  }
+}
+
+// ═══════════════════════════════
+// SINAV MODU (20 RASTGELE KART)
+// ═══════════════════════════════
+function shuffleArray(array) {
+  let curId = array.length;
+  while (0 !== curId) {
+    let randId = Math.floor(Math.random() * curId);
+    curId -= 1;
+    let tmp = array[curId];
+    array[curId] = array[randId];
+    array[randId] = tmp;
+  }
+  return array;
+}
+
+function startExam() {
+  // Tamamen rastgele 20 kart seçimi
+  var shuffled = shuffleArray([...allCards]);
+  examQueue = shuffled.slice(0, 20);
+  wrongCards = [];
+  examTotalCount = examQueue.length;
+  
+  if (examTotalCount === 0) {
+    document.getElementById("content-area").innerHTML = "<div style='text-align:center;padding:50px;'>Kart bulunamadı.</div>";
+    return;
+  }
+  
+  renderExamUI();
+}
+
+function renderExamUI() {
+  var ca = document.getElementById("content-area");
+
+  if (examQueue.length === 0) {
+    if (wrongCards.length > 0) {
+      examQueue = [...wrongCards];
+      wrongCards = [];
+      alert("Şimdi yanlış bildiğin kartları tekrar edeceğiz!");
+    } else {
+      ca.innerHTML = `
+        <div style="text-align:center; padding-top:60px;">
+          <div style="font-size:60px; margin-bottom:20px;">🏆</div>
+          <h2 style="font-family:'Lora',serif; margin-bottom:10px;">Tebrikler!</h2>
+          <p style="color:var(--text2); margin-bottom:30px;">Tüm kartları doğru bildin.</p>
+          <button onclick="startExam()" style="padding:14px 24px; background:var(--accent); color:#fff; border:none; border-radius:12px; font-weight:600; font-size:16px;">Yeniden Başla</button>
+        </div>
+      `;
+      return;
+    }
+  }
+
+  currentExamCard = examQueue[0];
+  var totalRemaining = examQueue.length + wrongCards.length;
+  var progressPct = Math.round(((examTotalCount - totalRemaining) / examTotalCount) * 100);
+
+  var tagLabel = (TOPICS[currentExamCard.topic] ? TOPICS[currentExamCard.topic].label : "Genel").toUpperCase();
+
+  ca.innerHTML = `
+    <div class="exam-status">Doğru Bilinen: ${examTotalCount - totalRemaining} / ${examTotalCount}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%"></div></div>
+    
+    <div class="exam-container">
+      <div class="flip-card-wrapper" id="exam-card" onclick="flipCard('exam-card')">
+        <div class="flip-card-inner">
+          <div class="flip-face flip-front">
+            <div class="c-tag">${tagLabel}</div>
+            <div class="c-q">${currentExamCard.q}</div>
+            <div class="c-hint">Cevabı görmek için karta dokun</div>
+          </div>
+          <div class="flip-face flip-back">
+            <div class="c-tag">CEVAP</div>
+            <div class="c-a">${currentExamCard.a}</div>
+            ${currentExamCard.tip ? `<div style="margin-top:15px; font-size:14px; color:var(--accent); font-weight:600;">💡 ${currentExamCard.tip}</div>` : ""}
+            <div class="exam-actions">
+              <button class="btn-exam btn-wrong" onclick="answerExam(false, event)">❌ Yanlış</button>
+              <button class="btn-exam btn-correct" onclick="answerExam(true, event)">✅ Doğru</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function answerExam(isCorrect, event) {
+  event.stopPropagation(); 
+  var answeredCard = examQueue.shift(); 
+  if (!isCorrect) { wrongCards.push(answeredCard); }
+  
+  var cardEl = document.getElementById("exam-card");
+  cardEl.style.transform = isCorrect ? "translateX(100vw) rotate(15deg)" : "translateX(-100vw) rotate(-15deg)";
+  cardEl.style.opacity = "0";
+  cardEl.style.transition = "all 0.4s ease";
+  
+  setTimeout(() => { renderExamUI(); }, 400);
+}
+
+function flipCard(id) {
+  var card = document.getElementById(id);
+  if (card) card.classList.toggle("flipped");
+}
+
+// ═══════════════════════════════
+// KART EKLEME (YEREL DEPOLAMA)
+// ═══════════════════════════════
+function renderAddForm() {
+  var ca = document.getElementById("content-area");
+  var options = Object.keys(TOPICS).map(k => `<option value="${k}">${TOPICS[k].icon} ${TOPICS[k].label}</option>`).join('');
+  
+  ca.innerHTML = `
+    <div class="form-card">
+      <h3 style="margin-bottom:5px; font-family:'Lora',serif; font-size:18px;">Yeni Kart Oluştur</h3>
+      <p style="font-size:12px; color:var(--text3); margin-bottom:15px;">Eklediğin kartlar cihazına kaydedilir ve Sınav/Konu modunda karşına çıkar.</p>
+      
+      <label class="form-label">Konu Seçimi</label>
+      <select id="add-topic" class="form-input">${options}</select>
+
+      <label class="form-label">Soru</label>
+      <textarea id="add-q" class="form-input" placeholder="Soruyu buraya yazın..."></textarea>
+
+      <label class="form-label">Cevap</label>
+      <textarea id="add-a" class="form-input" placeholder="Cevabı buraya yazın... (Koyu yapmak için metni <strong> </strong> içine alabilirsiniz)"></textarea>
+
+      <label class="form-label">İpucu (İsteğe Bağlı)</label>
+      <input type="text" id="add-tip" class="form-input" placeholder="Akılda kalıcı bir not..." style="margin-bottom:24px;">
+
+      <button onclick="saveNewCard()" style="width:100%; padding:14px; background:var(--accent); color:#fff; border:none; border-radius:12px; font-weight:600; font-size:16px; cursor:pointer;">Kartı Kaydet</button>
+    </div>
+  `;
+}
+
+function saveNewCard() {
+  var topic = document.getElementById("add-topic").value;
+  var q = document.getElementById("add-q").value.trim();
+  var a = document.getElementById("add-a").value.trim();
+  var tip = document.getElementById("add-tip").value.trim();
+  
+  if(!q || !a) {
+    alert("Lütfen Soru ve Cevap alanlarını doldurun.");
+    return;
+  }
+  
+  var newCard = {
+    id: "u_" + Date.now(),
+    topic: topic,
+    q: q,
+    a: a,
+    tip: tip
+  };
+  
+  customCards.push(newCard);
+  localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify(customCards));
+  allCards = DEFAULT_CARDS.concat(customCards);
+  
+  document.getElementById("add-q").value = '';
+  document.getElementById("add-a").value = '';
+  document.getElementById("add-tip").value = '';
+  
+  alert("Kart başarıyla kaydedildi! 🚀");
+}
+
+// ═══════════════════════════════
+// BAŞLATICI
+// ═══════════════════════════════
+window.onload = function() {
+  loadCustomCards();
+  showPage("home");
+};
+</script>
+</body>
+</html>
